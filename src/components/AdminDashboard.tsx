@@ -10,7 +10,8 @@ import {
   LogOut,
   Plus,
   Trash2,
-  X
+  X,
+  Upload
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -33,6 +34,7 @@ export default function AdminDashboard() {
   const [password, setPassword] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newPost, setNewPost] = useState({ title: '', content: '', type: 'travel', image_url: '' });
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -73,6 +75,31 @@ export default function AdminDashboard() {
       setIsModalOpen(false);
       setNewPost({ title: '', content: '', type: 'travel', image_url: '' });
       fetchData();
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.imageUrl) {
+        setNewPost({ ...newPost, image_url: data.imageUrl });
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('Upload failed');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -364,15 +391,27 @@ export default function AdminDashboard() {
                       <option value="journal">Journal Entry</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-stone-600 mb-1">Image URL</label>
-                    <input 
-                      type="text" 
-                      value={newPost.image_url}
-                      onChange={(e) => setNewPost({ ...newPost, image_url: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none"
-                      placeholder="https://..."
-                    />
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-stone-600 mb-1">Image Source (URL or Upload)</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={newPost.image_url}
+                        onChange={(e) => setNewPost({ ...newPost, image_url: e.target.value })}
+                        className="flex-1 px-4 py-2 rounded-lg border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none"
+                        placeholder="https://... or uploaded path"
+                      />
+                      <label className="cursor-pointer bg-stone-100 hover:bg-stone-200 px-4 py-2 rounded-lg border border-stone-200 flex items-center gap-2 transition-all">
+                        <Upload size={18} className={isUploading ? 'animate-bounce' : ''} />
+                        <span className="text-sm font-medium whitespace-nowrap">{isUploading ? '...' : 'Upload'}</span>
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={handleFileUpload}
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
                 <div>
